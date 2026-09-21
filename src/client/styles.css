@@ -1,0 +1,162 @@
+/**
+ * zcode-wallpaper-engine — client styles.
+ *
+ * Layering contract:
+ *   .we-layer / .we-scrim  position:fixed; z-index:0   (behind everything)
+ *   #root                  position:relative; z-index:1 (promoted below)
+ *
+ * ZCode paints its surfaces from Tailwind v4 tokens, so while a wallpaper is
+ * active we neutralise those tokens on <html> and let the scrim carry the
+ * backdrop; the 玻璃 slider re-frosts the surfaces with backdrop-filter.
+ */
+
+html[data-we-wallpaper="on"] body,
+html[data-we-wallpaper="on"] #root {
+  background: transparent !important;
+}
+
+html[data-we-wallpaper="on"] #root {
+  position: relative;
+  z-index: 1;
+}
+
+/* The whole app becomes see-through; the scrim behind it is the backdrop. */
+html[data-we-wallpaper="on"] {
+  --color-background: transparent !important;
+  --color-background-alt: transparent !important;
+  --color-surface: color-mix(in srgb, var(--we-glass-color, #fff) 12%, transparent) !important;
+}
+
+/* ── 壁纸层 + 遮罩 ────────────────────────────────────────────────────── */
+
+#zcode-wallpaper-engine-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: transparent;
+}
+#zcode-wallpaper-engine-layer.we-active {
+  display: block;
+}
+.we-layer__media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  outline: 0;
+  transform: scaleX(var(--we-flip, 1));
+  filter: blur(var(--we-wallpaper-blur, 0px)) var(--we-wallpaper-filter, none);
+  opacity: var(--we-wallpaper-opacity, 1);
+  background: var(--zcode-bootstrap-bg, #161616);
+}
+.we-layer__media:focus {
+  outline: none;
+}
+
+#zcode-wallpaper-engine-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: var(--we-scrim-color, rgba(8, 10, 16, 0.18));
+  opacity: 0;
+  transition: opacity 0.45s ease;
+}
+#zcode-wallpaper-engine-scrim.we-active {
+  opacity: 1;
+}
+
+/* ── 液态玻璃：把 ZCode 的面板表面转成毛玻璃 ──────────────────────────── */
+
+html[data-we-wallpaper="on"] .bg-surface,
+html[data-we-wallpaper="on"] .bg-surface-raised,
+html[data-we-wallpaper="on"] .bg-surface-elevated {
+  background-color: color-mix(
+    in srgb,
+    var(--we-glass-color, #ffffff) calc((1 - var(--we-glass-opacity, 0.28)) * 100%),
+    transparent
+  ) !important;
+  backdrop-filter: blur(var(--we-blur, 18px)) saturate(var(--we-saturate, 1.3)) brightness(1.04);
+  -webkit-backdrop-filter: blur(var(--we-blur, 18px)) saturate(var(--we-saturate, 1.3)) brightness(1.04);
+}
+
+/* The main app frame stays translucent (the wallpaper shows through) rather
+ * than frosted — a full-app blur is too heavy for the chat column. */
+html[data-we-wallpaper="on"] .bg-background {
+  background-color: color-mix(
+    in srgb,
+    var(--we-glass-color, #ffffff) calc(var(--we-glass-opacity, 0.28) * 30%),
+    transparent
+  ) !important;
+  backdrop-filter: blur(calc(var(--we-blur, 18px) * 0.35)) saturate(var(--we-saturate, 1.2));
+  -webkit-backdrop-filter: blur(calc(var(--we-blur, 18px) * 0.35)) saturate(var(--we-saturate, 1.2));
+}
+
+html[data-we-wallpaper="on"] .bg-background-alt {
+  background-color: color-mix(
+    in srgb,
+    var(--we-glass-color, #ffffff) calc(var(--we-glass-opacity, 0.28) * 45%),
+    transparent
+  ) !important;
+}
+
+/* Border emphasis: lift panel edges out of the wallpaper. */
+html[data-we-wallpaper="on"] .border-border,
+html[data-we-wallpaper="on"] .border {
+  border-color: color-mix(
+    in srgb,
+    var(--we-glass-color, #ffffff) calc(var(--we-border-alpha, 0) * 60%),
+    transparent
+  ) !important;
+}
+
+/* Accent: recolour ZCode's primary tokens to the user's palette. */
+html[data-we-wallpaper="on"] {
+  --color-primary: var(--we-accent, #7c6cff) !important;
+  --color-primary-foreground: #ffffff !important;
+  --color-ring: var(--we-accent, #7c6cff) !important;
+}
+
+/* ── 字体自定义 ────────────────────────────────────────────────────────── */
+
+html[data-we-wallpaper="on"] body {
+  color: var(--we-font-color, inherit);
+  font-weight: var(--we-font-weight, inherit);
+  font-family: var(--we-font-family, inherit);
+}
+html[data-we-wallpaper="on"] input,
+html[data-we-wallpaper="on"] textarea,
+html[data-we-wallpaper="on"] [contenteditable] {
+  caret-color: var(--we-cursor-color, auto);
+}
+/* Error text must never be recoloured — a red error stained by a wallpaper
+ * colour is unreadable and hides the failure. */
+html[data-we-wallpaper="on"] .text-destructive,
+html[data-we-wallpaper="on"] .text-error,
+html[data-we-wallpaper="on"] [role="alert"] {
+  color: rgb(248 113 113) !important;
+}
+
+/* ── Immersive / kiosk app windows: drop frosted blur there (Chromium can
+ *   flash the whole window white when a backdrop-filter surface re-rasterises
+ *   over the wallpaper); translucent glass keeps the wallpaper visible. */
+html[data-we-appwindow="on"] .bg-surface,
+html[data-we-appwindow="on"] .bg-surface-raised,
+html[data-we-appwindow="on"] .bg-background,
+html[data-we-appwindow="on"] .bg-background-alt {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .we-panel,
+  .we-picker,
+  .we-launcher,
+  #zcode-wallpaper-engine-scrim {
+    transition: none !important;
+    animation: none !important;
+  }
+}

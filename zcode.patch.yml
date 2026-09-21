@@ -1,0 +1,85 @@
+# zcode.patch.yml — what scripts/install-to-zcode.mjs changes in a ZCode checkout
+#
+# ZCode has no out-of-tree plugin bus (unlike DSH's Cordis host), so the port
+# integrates at compile time: this file is the human-readable manifest of every
+# edit the installer makes. `zcode-wallpaper-engine install` applies it;
+# `uninstall` reverses it byte-for-byte (verified by the test suite).
+#
+# Every patched region is wrapped in sentinel comments so uninstall can find it
+# again after an upstream refactor. Sentinel math runs on LF-normalized text
+# and the file's own line ending style (CRLF on Windows) is restored at write
+# time — otherwise the patch shows up as a whole-file diff in review.
+
+package: "@zcode/wallpaper-engine"
+target: github.com/zai-org/ZCode
+sentinels:
+  # Identical tokens in every file type; only the comment syntax differs.
+  import: zcode-wallpaper-engine-import
+  mount: zcode-wallpaper-engine-mount
+
+workspace:
+  # The package is linked into the pnpm workspace rather than published, so
+  # the mount survives `pnpm install` without a registry round trip.
+  - path: packages/wallpaper-engine
+    kind: junction
+    note: Refuses to overwrite an existing directory that is not this package.
+
+  - path: packages/server/package.json
+    kind: dependency
+    add: { "@zcode/wallpaper-engine": "workspace:*" }
+    note: Kept alphabetized so the diff is one added line.
+
+patches:
+  # ── server: mount the routes on the main Hono app ──────────────────────
+  # Both regions are anchored: the import to the module's import section (an
+  # import inside a function is a syntax error) and the mount to the route
+  # registration line, which must run after `authToken` is in scope and before
+  # the static SPA catch-all — otherwise index.html answers every
+  # /wallpaper-engine request.
+  - file: packages/server/src/http.ts
+    region: import section
+    sentinel: zcode-wallpaper-engine-import-begin … -end
+    content: |
+      import { registerWallpaperEngineRoutes } from "@zcode/wallpaper-engine";
+
+  - file: packages/server/src/http.ts
+    region: before app.post("/api/rpc-host-capability",
+    sentinel: zcode-wallpaper-engine-mount-begin … -end
+    content: |
+      registerWallpaperEngineRoutes(app, { authToken });
+
+  # ── web client: the built bundle + a script tag ────────────────────────
+  # The bundle is self-contained (React + CSS inlined as strings) because
+  # ZCode's Vite build has no hook to ship a companion asset alongside it.
+  - file: packages/web/public/wallpaper-engine-client.js
+    kind: copy
+    source: lib/client.js
+    note: Rebuilt by `pnpm build`; the installer fails if it is missing.
+
+  - file: packages/web/index.html
+    region: before </body>
+    sentinel: zcode-wallpaper-engine-mount-begin … -end
+    content: |
+      <script defer src="/wallpaper-engine-client.js"></script>
+    note: |
+      The desktop (Electron) renderer loads the same web build, so this one
+      injection covers both surfaces.
+
+runtime:
+  # Nothing is written outside the checkout except the user's own data:
+  # settings and the custom-upload library live here, scene frame caches and
+  # extracted scene animation assets land in a subdirectory of it.
+  data_dir: ~/.zcode-wallpaper-engine
+  env:
+    ZCODE_WE_STEAM_ROOT: Override Steam discovery (tests use a synthetic tree).
+    ZCODE_WE_UPLOAD_DIR: Override the custom-upload directory.
+    ZCODE_WE_PORT: Port for the standalone `serve` CLI (0 = OS-chosen).
+
+verify:
+  # `pnpm verify` runs scripts/auto-review.mjs: shipped files, the 19-route
+  # table, client self-containment, dsh residue, sentinel round-trip, the
+  # Hono bridge contracts and a live route smoke against a temp uploads dir.
+  # `pnpm verify:mount` boots the *real* patched server and proves the three
+  # routes answer 200 with no ERR_HTTP_HEADERS_SENT.
+  - npm run verify
+  - npm run verify:mount

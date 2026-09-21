@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.vitest/
+*.tsbuildinfo
+lib/client.js
+!lib/types/client.d.ts
+coverage/
+.DS_Store
