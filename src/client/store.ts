@@ -104,7 +104,8 @@ export class Store {
       }
     }
     if (s.typeFilter !== "all") {
-      const kind = w.type === "video" ? "video" : w.type === "web" ? "web" : "image";
+      const kind =
+        w.type === "video" ? "video" : w.type === "web" ? "web" : w.type === "scene" ? "scene" : "image";
       if (kind !== s.typeFilter) return false;
     }
     return true;

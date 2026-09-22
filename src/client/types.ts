@@ -4,7 +4,7 @@
  * object stored in ~/.zcode-wallpaper-engine/config.json.
  */
 
-export type WallpaperType = "scene" | "video" | "web" | "application";
+export type WallpaperType = "scene" | "video" | "web" | "image" | "application";
 export type ContentRating = "Everyone" | "PG13" | "Mature" | string | null;
 export type RatingFilter = "all" | "everyone" | "pg13" | "mature" | "unrated";
 export type TypeFilter = "all" | "video" | "web" | "image" | "scene";

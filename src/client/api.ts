@@ -72,11 +72,12 @@ export class HostApi {
    */
   async upload(file: File): Promise<{ ok: boolean; error?: string }> {
     try {
-      const res = await fetch(`${this.baseUrl}/upload`, {
+      // Host reads the display title from ?title= (see lib/host.js /upload).
+      const qs = `?title=${encodeURIComponent(file.name)}`;
+      const res = await fetch(`${this.baseUrl}/upload${qs}`, {
         method: "POST",
         headers: {
           "Content-Type": file.type || "application/octet-stream",
-          "X-WE-Title": encodeURIComponent(file.name),
         },
         body: file,
       });

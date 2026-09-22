@@ -84,36 +84,56 @@ export interface InventoryPlaylist {
 }
 
 export interface WallpaperEngineSettings {
-  id: string;
-  scrim: number;
-  border: number;
-  blur: number;
+  wallpaperId: string | null;
+  paused: boolean;
+  /** px blur on the wallpaper layer. */
   wallpaperBlur: number;
-  backgroundBrightness: number;
-  backgroundContrast: number;
-  backgroundSaturate: number;
-  rotationEnabled: boolean;
-  rotationGroupId: string;
-  rotationGroups: RotationGroup[];
-  rotationSeeded: boolean;
-  hiddenIds: string[];
-  playbackRate: number;
-  videoVolume: number;
-  videoAudioEnabled: boolean;
+  /** 0..1 dark scrim between wallpaper and UI. */
+  scrim: number;
+  /** 0..1 wallpaper layer opacity. */
+  wallpaperOpacity: number;
+  /** CSS filter multipliers, 0.2..2. */
+  brightness: number;
+  contrast: number;
+  saturate: number;
+  /** 0..1 accent border alpha. */
+  border: number;
+  /** px backdrop blur on glass panels. */
+  glass: number;
+  /** legacy alias of scrim kept for migration. */
+  dim: number;
+  objectFit: "cover" | "contain" | "center" | "fill";
+  flip: boolean;
+  /** Video playback rate, 0.5..2. */
+  rate: number;
   fpsCap: number;
-  betaSceneAnim: boolean;
+  accent: string;
+  glassColor: string;
+  /** 0..0.6 glass fill alpha. */
+  glassOpacity: number;
+  fontEnabled: boolean;
+  fontColor: string | null;
+  fontWeight: number | null;
+  fontFamily: string | null;
+  cursorColor: string | null;
+  compact: boolean;
+  edgeCompat: boolean;
   pauseOnHidden: boolean;
   pauseOnBlur: boolean;
   pauseOnBattery: boolean;
-  flip: boolean;
-  objectFit: "cover" | "contain" | "fill";
-  betterSidebar: boolean;
+  ratingFilter: "all" | "everyone" | "pg13" | "mature" | "unrated";
+  typeFilter: "all" | "video" | "web" | "image" | "scene";
+  hiddenIds: string[];
+  rotationGroups: RotationGroup[];
+  rotationEnabled: boolean;
+  rotationGroupId: string | null;
 }
 
 export interface RotationGroup {
   id: string;
   name: string;
-  interval: number;
+  /** Seconds per wallpaper. Clamped to [5, 86400]. */
+  intervalSec: number;
   order: "sequence" | "random";
   wallpaperIds: string[];
 }

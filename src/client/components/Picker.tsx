@@ -22,6 +22,7 @@ const TYPE_OPTIONS: { value: TypeFilter; label: string }[] = [
   { value: "video", label: "视频" },
   { value: "web", label: "网页" },
   { value: "image", label: "图片" },
+  { value: "scene", label: "场景" },
 ];
 const PAGE_SIZE = 48;
 
@@ -64,7 +65,8 @@ export function Picker({ store }: { store: Store }) {
       const r = w.contentrating ? String(w.contentrating).toLowerCase() : "unrated";
       if (r === "everyone" || r === "pg13" || r === "mature") c[r] = (c[r] || 0) + 1;
       else c.unrated = (c.unrated || 0) + 1;
-      const t = w.type === "video" ? "video" : w.type === "web" ? "web" : "image";
+      const t =
+        w.type === "video" ? "video" : w.type === "web" ? "web" : w.type === "scene" ? "scene" : "image";
       c[t] = (c[t] || 0) + 1;
     }
     return c;

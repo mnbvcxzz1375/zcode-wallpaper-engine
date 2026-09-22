@@ -43,17 +43,6 @@ export function startTranscodeUpgrade(store: Store, w: Wallpaper): void {
   const abort = new AbortController();
   active = { token, fps: s.fpsCap, abort, timer: null };
 
-  // Skip when the source is already at/below the cap (host-side media-info
-  // probe: moov box → width/height/codec/fps).
-  void store.api.getMediaInfo(token).then((mi) => {
-    if (!active || active.token !== token) return;
-    if (mi && mi.info && mi.info.fps && mi.info.fps <= active.fps) {
-      stopTranscodeUpgrade();
-      return;
-    }
-    void poll();
-  });
-
   const poll = async () => {
     if (!active || active.token !== token) return;
     const p = await store.api.getTranscodeProgress(token, s.fpsCap, abort.signal);
@@ -71,7 +60,19 @@ export function startTranscodeUpgrade(store: Store, w: Wallpaper): void {
     }
     active.timer = setTimeout(poll, POLL_INTERVAL_MS);
   };
-  void poll();
+
+  // Skip when the source is already at/below the cap (host-side media-info
+  // probe: moov box → width/height/codec/fps). Poll only after that check —
+  // starting both at once would double the request rate and leak the first
+  // timer when the second overwrites active.timer.
+  void store.api.getMediaInfo(token).then((mi) => {
+    if (!active || active.token !== token) return;
+    if (mi && mi.info && mi.info.fps && mi.info.fps <= active.fps) {
+      stopTranscodeUpgrade();
+      return;
+    }
+    void poll();
+  });
 }
 
 export function stopTranscodeUpgrade(): void {

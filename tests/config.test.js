@@ -27,7 +27,7 @@ describe("settings config", () => {
   });
 
   test("config.json round-trips settings", async () => {
-    const settings = { scrim: 0.25, blur: 24, accent: "#7c6cff", fpsCap: 30 };
+    const settings = { scrim: 0.25, glass: 24, accent: "#7c6cff", fpsCap: 30 };
     writeFileSync(realConfig, JSON.stringify({ settings }, null, 2));
 
     const host = await import("../lib/host.js");

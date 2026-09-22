@@ -62,10 +62,21 @@ describe("routes", () => {
     const a = await app();
     // The body is the settings object itself (the client PUTs its whole store,
     // the route replaces rather than merges), so send the fields we assert on.
+    // Field names are the CLIENT ones (src/client/types.ts).
     const put = await a.request("/wallpaper-engine/settings", {
       method: "PUT",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ scrim: 0.4, accent: "#ff0000", blur: 30 }),
+      body: JSON.stringify({
+        scrim: 0.4,
+        accent: "#ff0000",
+        glass: 30,
+        wallpaperId: "wp-1",
+        paused: true,
+        rate: 1.5,
+        ratingFilter: "pg13",
+        rotationGroups: [{ id: "g1", name: "夜", intervalSec: 120, order: "random", wallpaperIds: ["a", "b"] }],
+        rotationGroupId: "g1",
+      }),
     });
     expect(put.status).toBe(200);
     expect((await put.json()).ok).toBe(true);
@@ -76,7 +87,37 @@ describe("routes", () => {
     const body = await get.json();
     expect(body.settings.scrim).toBe(0.4);
     expect(body.settings.accent).toBe("#ff0000");
-    expect(body.settings.blur).toBe(30);
+    expect(body.settings.glass).toBe(30);
+    expect(body.settings.wallpaperId).toBe("wp-1");
+    expect(body.settings.paused).toBe(true);
+    expect(body.settings.rate).toBe(1.5);
+    expect(body.settings.ratingFilter).toBe("pg13");
+    expect(body.settings.rotationGroups[0].intervalSec).toBe(120);
+    expect(body.settings.rotationGroupId).toBe("g1");
+  });
+
+  test("PUT /wallpaper-engine/settings migrates legacy host field names", async () => {
+    const a = await app();
+    const put = await a.request("/wallpaper-engine/settings", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        playbackRate: 1.25,
+        blur: 24,
+        contentRatingFilter: "mature",
+        glassAlpha: 40,
+        backgroundBrightness: 120,
+        rotationGroups: [{ id: "g", name: "old", interval: 5, order: "sequence", wallpaperIds: ["x"] }],
+      }),
+    });
+    expect(put.status).toBe(200);
+    const body = await (await put.json()).settings;
+    expect(body.rate).toBe(1.25);
+    expect(body.glass).toBe(24);
+    expect(body.ratingFilter).toBe("mature");
+    expect(body.glassOpacity).toBe(0.4);
+    expect(body.brightness).toBe(1.2);
+    expect(body.rotationGroups[0].intervalSec).toBe(300);
   });
 
   test("PUT /wallpaper-engine/settings rejects malformed JSON with 400, not a crash", async () => {
