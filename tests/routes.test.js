@@ -232,6 +232,35 @@ describe("routes", () => {
     const res = await (await app()).request("/wallpaper-engine/nope");
     expect(res.status).toBe(404);
   });
+
+  // The inventory is cached for 3s (INVENTORY_TTL_MS) because the full scan
+  // is slow on spinning disks and the client refetches on every panel open.
+  // Upload and remove mutate that same library, so both must drop the cache —
+  // otherwise the picker briefly omits a new wallpaper or keeps a deleted one.
+  test("upload and remove invalidate the inventory cache", async () => {
+    const a = await app();
+    expect((await (await a.request("/wallpaper-engine/inventory")).json()).total).toBe(0);
+
+    const up = await a.request("/wallpaper-engine/upload?title=cache.png", {
+      method: "POST",
+      headers: { "content-type": "image/png" },
+      body: new Uint8Array([1, 2, 3, 4]),
+    });
+    const { id } = await up.json();
+    expect(
+      (await (await a.request("/wallpaper-engine/inventory")).json()).total,
+    ).toBe(1);
+
+    const rm = await a.request("/wallpaper-engine/remove", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    expect(rm.status).toBe(200);
+    expect(
+      (await (await a.request("/wallpaper-engine/inventory")).json()).total,
+    ).toBe(0);
+  });
 });
 
 describe("auth token gate", () => {
